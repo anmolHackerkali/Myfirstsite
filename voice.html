@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Human-like Text → Speech (Best Voice Picker)</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 780px; margin: 28px auto; padding: 0 12px; }
+    textarea { width: 100%; height: 170px; padding: 10px; font-size: 16px; line-height: 1.35; }
+    button { padding: 10px 14px; margin: 6px 6px 6px 0; cursor: pointer; border-radius: 10px; border: 1px solid #ddd; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    select, input[type="range"] { padding: 8px; }
+    .row { margin: 10px 0; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .card { padding: 12px; border: 1px solid #eee; border-radius: 14px; }
+    small { color:#555; }
+    .tag { display:inline-block; padding:2px 8px; border:1px solid #eee; border-radius:999px; font-size:12px; }
+  </style>
+</head>
+<body>
+  <h2>🗣️ Human-like Text → Speech (Best Voice Auto-Pick)</h2>
+
+  <div class="card">
+    <textarea id="text" placeholder="Yahan apna text likho..."></textarea>
+
+    <div class="row">
+      <span class="tag" id="pickedTag">Picked: —</span>
+      <span class="tag" id="langTag">Lang guess: —</span>
+    </div>
+
+    <div class="row">
+      <label>Voice:</label>
+      <select id="voice"></select>
+
+      <label style="min-width:70px;">Rate:</label>
+      <input id="rate" type="range" min="0.85" max="1.15" step="0.01" value="0.98" />
+      <span id="rateVal">0.98</span>
+
+      <label style="min-width:70px;">Pitch:</label>
+      <input id="pitch" type="range" min="0.85" max="1.15" step="0.01" value="1.02" />
+      <span id="pitchVal">1.02</span>
+    </div>
+
+    <div class="row">
+      <button id="autoPickBtn">✨ Auto Pick Best Human Voice</button>
+      <button id="speakBtn">🔊 Speak</button>
+      <button id="stopSpeakBtn">🛑 Stop</button>
+    </div>
+
+    <div class="row">
+      <button id="startRecBtn">⏺️ Start Recording</button>
+      <button id="stopRecBtn" disabled>⏹️ Stop & Make File</button>
+    </div>
+
+    <div id="status"><small>Status: Ready</small></div>
+    <div id="download"></div>
+  </div>
+
+  <hr />
+  <small>
+    ✅ Ye file aapke device me jo best “neural / natural” voices available hongi, unko prefer karega.  
+    ⚠️ Agar aapke device me natural voices hi nahi hain, to perfect human voice possible nahi.
+  </small>
+
+<script>
+  const textEl = document.getElementById("text");
+  const voiceEl = document.getElementById("voice");
+  const rateEl = document.getElementById("rate");
+  const pitchEl = document.getElementById("pitch");
+  const rateVal = document.getElementById("rateVal");
+  const pitchVal = document.getElementById("pitchVal");
+  const pickedTag = document.getElementById("pickedTag");
+  const langTag = document.getElementById("langTag");
+
+  const autoPickBtn = document.getElementById("autoPickBtn");
+  const speakBtn = document.getElementById("speakBtn");
+  const stopSpeakBtn = document.getElementById("stopSpeakBtn");
+
+  const startRecBtn = document.getElementById("startRecBtn");
+  const stopRecBtn = document.getElementById("stopRecBtn");
+  const statusEl = document.getElementById("status");
+  const downloadEl = document.getElementById("download");
+
+  rateEl.oninput = () => rateVal.textContent = Number(rateEl.value).toFixed(2);
+  pitchEl.oninput = () => pitchVal.textContent = Number(pitchEl.value).toFixed(2);
+
+  let voices = [];
+
+  function normalize(s){ return (s||"").toLowerCase(); }
+
+  function guessLangFromText(t){
+    // Very lightweight heuristic: Arabic script => ur; Devanagari => hi; else en
+    if (/[؀-ۿ]/.test(t)) return "ur";
+    if (/[ऀ-ॿ]/.test(t)) return "hi";
+    return "en";
+  }
+
+  function scoreVoice(v, targetLang){
+    // Higher score = more human-like preference
+    const name = normalize(v.name);
+    const lang = normalize(v.lang);
+
+    let score = 0;
+
+    // Language match
+    if (lang.startsWith(targetLang)) score += 30;
+    if (targetLang === "hi" && (lang.includes("hi") || lang.includes("en-in"))) score += 8;
+    if (targetLang === "ur" && (lang.includes("ur") || lang.includes("hi") || lang.includes("en-in"))) score += 6;
+
+    // Prefer "Neural / Natural / Premium" voices (varies by OS/browser)
+    if (name.includes("neural")) score += 45;
+    if (name.includes("natural")) score += 35;
+    if (name.includes("premium")) score += 25;
+    if (name.includes("enhanced")) score += 20;
+
+    // Prefer Google/Microsoft/Apple high quality families if present
+    if (name.includes("google")) score += 25;
+    if (name.includes("microsoft")) score += 22;
+    if (name.includes("apple")) score += 18;
+    if (name.includes("siri")) score += 16;
+
+    // Penalize very robotic / old voices
+    if (name.includes("espeak")) score -= 60;
+    if (name.includes("robot")) score -= 40;
+
+    // Local service voices sometimes better than remote markers (not always)
+    if (v.localService) score += 6;
+
+    return score;
+  }
+
+  function populateVoiceDropdown(){
+    voices = speechSynthesis.getVoices() || [];
+    voiceEl.innerHTML = "";
+
+    voices.forEach((v, i) => {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.textContent = `${v.name} (${v.lang})${v.localService ? " • local" : ""}`;
+      voiceEl.appendChild(opt);
+    });
+  }
+
+  function autoPickBestVoice(){
+    const t = textEl.value.trim();
+    const target = guessLangFromText(t);
+    langTag.textContent = `Lang guess: ${target.toUpperCase()}`;
+
+    if (!voices.length) populateVoiceDropdown();
+
+    let bestIdx = 0;
+    let bestScore = -Infinity;
+
+    voices.forEach((v, i) => {
+      const s = scoreVoice(v, target);
+      if (s > bestScore) { bestScore = s; bestIdx = i; }
+    });
+
+    voiceEl.value = String(bestIdx);
+    const chosen = voices[bestIdx];
+    pickedTag.textContent = `Picked: ${chosen ? chosen.name : "—"} • ${chosen ? chosen.lang : ""}`;
+
+    // Gentle defaults that reduce robotic feel
+    // Slightly slower + slightly higher pitch often feels more natural for Hindi/Urdu
+    if (target === "hi" || target === "ur"){
+      rateEl.value = "0.98";
+      pitchEl.value = "1.02";
+    } else {
+      rateEl.value = "1.00";
+      pitchEl.value = "1.00";
+    }
+    rateVal.textContent = Number(rateEl.value).toFixed(2);
+    pitchVal.textContent = Number(pitchEl.value).toFixed(2);
+  }
+
+  function buildUtterance(){
+    const t = textEl.value.trim();
+    if (!t) return null;
+
+    // Add tiny pauses after punctuation to sound more human
+    const humanized = t
+      .replace(/([.?!])\s*/g, "$1  ")
+      .replace(/([،,؛;:])\s*/g, "$1 ");
+
+    const u = new SpeechSynthesisUtterance(humanized);
+
+    const idx = parseInt(voiceEl.value, 10);
+    if (voices[idx]) u.voice = voices[idx];
+
+    u.rate = parseFloat(rateEl.value);
+    u.pitch = parseFloat(pitchEl.value);
+
+    // volume left default (1.0)
+    return u;
+  }
+
+  function safeSpeak(){
+    const u = buildUtterance();
+    if (!u) return alert("Pehle text likho 🙂");
+
+    speechSynthesis.cancel();
+    statusEl.innerHTML = "<small>Status: Speaking...</small>";
+
+    u.onend = () => statusEl.innerHTML = "<small>Status: Done ✅</small>";
+    u.onerror = () => statusEl.innerHTML = "<small>Status: Error (voice not available)</small>";
+
+    speechSynthesis.speak(u);
+  }
+
+  autoPickBtn.onclick = autoPickBestVoice;
+  speakBtn.onclick = safeSpeak;
+  stopSpeakBtn.onclick = () => {
+    speechSynthesis.cancel();
+    statusEl.innerHTML = "<small>Status: Stopped</small>";
+  };
+
+  // Load voices
+  function initVoices(){
+    populateVoiceDropdown();
+    autoPickBestVoice();
+  }
+  initVoices();
+  speechSynthesis.onvoiceschanged = initVoices;
+
+  // Recording (tab audio capture) - same idea as before
+  let mediaRecorder, chunks = [];
+
+  startRecBtn.onclick = async () => {
+    const u = buildUtterance();
+    if (!u) return alert("Pehle text likho 🙂");
+
+    downloadEl.innerHTML = "";
+    chunks = [];
+
+    let mimeType = "";
+    if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) mimeType = "audio/webm;codecs=opus";
+    else if (MediaRecorder.isTypeSupported("audio/webm")) mimeType = "audio/webm";
+    else if (MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) mimeType = "audio/ogg;codecs=opus";
+
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    } catch (e) {
+      alert("Recording ke liye 'Share this tab' select karo aur audio allow karo (Chrome/Edge).");
+      return;
+    }
+
+    // stop video track (only audio needed)
+    const vTrack = stream.getVideoTracks()[0];
+    if (vTrack) vTrack.stop();
+
+    mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) chunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
+      const url = URL.createObjectURL(blob);
+      const ext = (blob.type.includes("ogg")) ? "ogg" : "webm";
+
+      downloadEl.innerHTML = `
+        <a href="${url}" download="tts_recording.${ext}">⬇️ Download Audio (${ext.toUpperCase()})</a>
+        <div><small>Note: MP3 “human voice” ke liye cloud neural TTS best rahega.</small></div>
+      `;
+      statusEl.innerHTML = "<small>Status: File ready ✅</small>";
+    };
+
+    mediaRecorder.start();
+    startRecBtn.disabled = true;
+    stopRecBtn.disabled = false;
+
+    statusEl.innerHTML = "<small>Status: Recording... Speaking started</small>";
+    speechSynthesis.cancel();
+    u.onend = () => statusEl.innerHTML = "<small>Status: Speech done. Stop dabao file banane ke liye.</small>";
+    speechSynthesis.speak(u);
+  };
+
+  stopRecBtn.onclick = () => {
+    if (!mediaRecorder) return;
+    mediaRecorder.stop();
+    stopRecBtn.disabled = true;
+    startRecBtn.disabled = false;
+    statusEl.innerHTML = "<small>Status: Processing...</small>";
+  };
+</script>
+</body>
+</html>
