@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Animated Text to Video</title>
+  <style>
+    body{
+      font-family: Arial, sans-serif;
+      background:#0f172a;
+      color:#fff;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      min-height:100vh;
+      margin:0;
+      padding:20px;
+    }
+    .wrap{
+      width:min(980px, 100%);
+      background:#111827;
+      border:1px solid #23324a;
+      border-radius:16px;
+      padding:18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    h1{ margin:0 0 10px; font-size:20px; }
+    textarea{
+      width:100%;
+      min-height:90px;
+      border-radius:12px;
+      border:1px solid #2b3c59;
+      background:#0b1220;
+      color:#fff;
+      padding:12px;
+      font-size:16px;
+      outline:none;
+      resize:vertical;
+    }
+    .controls{
+      display:flex; gap:10px; flex-wrap:wrap;
+      align-items:center; margin-top:10px;
+    }
+    button{
+      background:#2563eb; color:#fff; border:none;
+      padding:10px 14px; border-radius:12px;
+      cursor:pointer; font-weight:700;
+    }
+    button:disabled{ opacity:.5; cursor:not-allowed; }
+    select, input{
+      border-radius:10px;
+      border:1px solid #2b3c59;
+      background:#0b1220;
+      color:#fff;
+      padding:8px 10px;
+      outline:none;
+    }
+    label{ font-size:13px; opacity:.9; }
+    .small{ font-size:13px; opacity:.85; }
+    .box{
+      margin-top:14px;
+      border:1px solid #2b3c59;
+      border-radius:16px;
+      padding:12px;
+      background:#0b1220;
+    }
+    .box-title{
+      display:flex; justify-content:space-between;
+      align-items:center; margin-bottom:8px;
+      font-weight:700;
+    }
+    video{
+      width:100%;
+      border-radius:12px;
+      background:#000;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🎨 Animated Text ➜ 🎥 Video (Black/White BG)</h1>
+
+    <textarea id="text">Hello! Ye animated colourful video hai 🔥</textarea>
+
+    <div class="controls">
+      <button id="make">Make Video</button>
+      <button id="stop" disabled>Stop</button>
+
+      <a id="download" style="display:none" download="animated-text.mp4">
+        <button type="button">Download</button>
+      </a>
+
+      <label>BG:
+        <select id="bg">
+          <option value="black" selected>Black</option>
+          <option value="white">White</option>
+        </select>
+      </label>
+
+      <label>Animation:
+        <select id="anim">
+          <option value="type" selected>Typewriter</option>
+          <option value="bounce">Bounce</option>
+          <option value="slide">Slide In</option>
+        </select>
+      </label>
+
+      <label>Duration (sec):
+        <input id="duration" type="number" min="1" max="60" value="6" style="width:70px;">
+      </label>
+
+      <label>Font size:
+        <input id="fontsize" type="number" min="16" max="100" value="54" style="width:80px;">
+      </label>
+
+      <label>Quality:
+        <select id="quality">
+          <option value="2500000">High</option>
+          <option value="1500000" selected>Medium</option>
+          <option value="800000">Low</option>
+        </select>
+      </label>
+
+      <span class="small" id="status">Ready ✅</span>
+      <span class="small" id="formatInfo"></span>
+    </div>
+
+    <div class="box">
+      <div class="box-title">
+        <span>📦 Output Box</span>
+      </div>
+      <video id="player" controls></video>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const textEl = document.getElementById('text');
+  const makeBtn = document.getElementById('make');
+  const stopBtn = document.getElementById('stop');
+  const player = document.getElementById('player');
+  const statusEl = document.getElementById('status');
+  const downloadLink = document.getElementById('download');
+  const formatInfo = document.getElementById('formatInfo');
+
+  const durationEl = document.getElementById('duration');
+  const fontSizeEl = document.getElementById('fontsize');
+  const qualityEl = document.getElementById('quality');
+  const bgEl = document.getElementById('bg');
+  const animEl = document.getElementById('anim');
+
+  // Canvas
+  const canvas = document.createElement('canvas');
+  const W = 1280, H = 720;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  function setStatus(msg){ statusEl.textContent = msg; }
+
+  function pickMimeType(){
+    const candidates = [
+      'video/mp4;codecs=h264,aac',
+      'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+      'video/mp4',
+      'video/webm;codecs=vp9,opus',
+      'video/webm;codecs=vp8,opus',
+      'video/webm'
+    ];
+    for (const t of candidates){
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
+    }
+    return '';
+  }
+
+  function wrapLinesForWidth(font, text, maxWidth){
+    ctx.font = font;
+    const words = text.split(' ');
+    const lines = [];
+    let line = '';
+    for (let i=0;i<words.length;i++){
+      const test = line + words[i] + ' ';
+      if (ctx.measureText(test).width > maxWidth && i>0){
+        lines.push(line.trim());
+        line = words[i] + ' ';
+      } else {
+        line = test;
+      }
+    }
+    lines.push(line.trim());
+    return lines;
+  }
+
+  // Neon + gradient style
+  function applyNeonStroke(fillIsLight){
+    // glow
+    ctx.shadowBlur = 24;
+    ctx.shadowColor = fillIsLight ? "rgba(0,0,0,0.45)" : "rgba(255,255,255,0.35)";
+    // outline
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = fillIsLight ? "rgba(0,0,0,0.28)" : "rgba(255,255,255,0.22)";
+  }
+
+  function makeAnimatedGradient(t){
+    // hue rotation gradient for "colorful" look
+    const hue = (t * 60) % 360;
+    const g = ctx.createLinearGradient(W*0.2, H*0.2, W*0.8, H*0.8);
+    g.addColorStop(0, `hsl(${hue}, 95%, 60%)`);
+    g.addColorStop(0.5, `hsl(${(hue+90)%360}, 95%, 60%)`);
+    g.addColorStop(1, `hsl(${(hue+180)%360}, 95%, 60%)`);
+    return g;
+  }
+
+  function drawBackground(bg){
+    if (bg === "white") {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,W,H);
+      // subtle pattern
+      ctx.globalAlpha = 0.08;
+      for (let x=0;x<W;x+=40){
+        ctx.fillStyle = "#000";
+        ctx.fillRect(x, 0, 1, H);
+      }
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0,0,W,H);
+      // vignette
+      const grd = ctx.createRadialGradient(W/2,H/2,60,W/2,H/2,700);
+      grd.addColorStop(0,"rgba(255,255,255,0.08)");
+      grd.addColorStop(1,"rgba(255,255,255,0)");
+      ctx.fillStyle = grd;
+      ctx.fillRect(0,0,W,H);
+    }
+  }
+
+  function drawTextAnimated({fullText, t, anim, bg}){
+    const fontSize = Number(fontSizeEl.value) || 54;
+    const font = `800 ${fontSize}px Arial`;
+    const maxWidth = W * 0.86;
+    const lineHeight = Math.round(fontSize * 1.18);
+
+    // choose text variant based on animation
+    let textToDraw = fullText;
+
+    if (anim === "type") {
+      // typewriter: reveal chars over first ~60% of duration
+      const reveal = Math.min(1, t / 0.60);
+      const chars = Math.floor(fullText.length * reveal);
+      textToDraw = fullText.slice(0, Math.max(1, chars));
+    }
+
+    // wrap lines
+    const lines = wrapLinesForWidth(font, textToDraw, maxWidth);
+
+    // base y center
+    const totalH = lines.length * lineHeight;
+    let y0 = (H/2) - (totalH/2) + (lineHeight/2);
+
+    // animation transforms
+    let xShift = 0;
+    let yShift = 0;
+    let scale = 1;
+
+    if (anim === "bounce") {
+      // bounce in: damped sinus
+      const amp = Math.max(0, 1 - t) * 40;
+      yShift = Math.sin(t * Math.PI * 8) * amp;
+      scale = 1 + (Math.max(0, 0.25 - t) * 0.6); // pop at start
+    }
+
+    if (anim === "slide") {
+      // slide from left to center (ease out)
+      const ease = 1 - Math.pow(1 - Math.min(1, t / 0.55), 3);
+      xShift = (-W * 0.6) * (1 - ease);
+    }
+
+    // style
+    const isWhiteBG = (bg === "white");
+    ctx.font = font;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // colourful fill gradient changes with time
+    ctx.fillStyle = makeAnimatedGradient(t);
+
+    // glow / outline
+    applyNeonStroke(isWhiteBG);
+
+    // draw with scale transform
+    ctx.save();
+    ctx.translate(W/2 + xShift, H/2 + yShift);
+    ctx.scale(scale, scale);
+    ctx.translate(-(W/2), -(H/2));
+
+    // stroke + fill each line
+    for (let i=0;i<lines.length;i++){
+      const y = y0 + i * lineHeight;
+      ctx.strokeText(lines[i], W/2, y);
+      ctx.fillText(lines[i], W/2, y);
+    }
+
+    // footer
+    ctx.shadowBlur = 0;
+    ctx.font = "600 22px Arial";
+    ctx.fillStyle = isWhiteBG ? "rgba(0,0,0,0.65)" : "rgba(255,255,255,0.7)";
+    ctx.fillText("Animated Text Video", W/2, H - 42);
+
+    ctx.restore();
+    // reset shadow for safety
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = "transparent";
+  }
+
+  let recorder, chunks = [], stopTimer, rafId;
+  let startedAt = 0;
+  let running = false;
+
+  function stopRecording(){
+    if (recorder && recorder.state === "recording"){
+      setStatus("Stopping... ⏹️");
+      recorder.stop();
+    }
+    running = false;
+    if (rafId) cancelAnimationFrame(rafId);
+    clearTimeout(stopTimer);
+  }
+
+  function renderLoop(mimeType, bg, anim, fullText, durationSec){
+    const start = performance.now();
+    startedAt = start;
+
+    const tick = (now) => {
+      if (!running) return;
+
+      const elapsed = (now - start) / 1000;
+      const t = Math.min(1, elapsed / durationSec);
+
+      drawBackground(bg);
+      drawTextAnimated({ fullText, t, anim, bg });
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+  }
+
+  makeBtn.addEventListener('click', () => {
+    downloadLink.style.display = "none";
+    downloadLink.href = "";
+    player.removeAttribute("src");
+    player.load();
+
+    const mimeType = pickMimeType();
+    if (!mimeType){
+      alert("MediaRecorder not supported on this browser.");
+      return;
+    }
+
+    const durationSec = Math.max(1, Math.min(60, Number(durationEl.value) || 6));
+    const bitrate = Number(qualityEl.value) || 1500000;
+
+    const stream = canvas.captureStream(30);
+    chunks = [];
+
+    recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: bitrate });
+
+    recorder.onstart = () => {
+      makeBtn.disabled = true;
+      stopBtn.disabled = false;
+      setStatus("Recording... ⏺️");
+      formatInfo.textContent = mimeType.includes("mp4") ? "Format: MP4 (if supported)" : "Format: WebM";
+    };
+
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+
+    recorder.onstop = () => {
+      makeBtn.disabled = false;
+      stopBtn.disabled = true;
+
+      const blob = new Blob(chunks, { type: mimeType });
+      const url = URL.createObjectURL(blob);
+
+      player.src = url;
+      player.play().catch(()=>{});
+
+      const isMp4 = mimeType.includes("mp4");
+      downloadLink.download = isMp4 ? "animated-text.mp4" : "animated-text.webm";
+      downloadLink.href = url;
+      downloadLink.style.display = "inline-block";
+
+      setStatus("Done ✅ Video box me aa gaya!");
+      running = false;
+      clearTimeout(stopTimer);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+
+    const fullText = (textEl.value || "").trim() || " ";
+    const bg = bgEl.value;            // black/white
+    const anim = animEl.value;        // type/bounce/slide
+
+    running = true;
+    renderLoop(mimeType, bg, anim, fullText, durationSec);
+
+    recorder.start();
+
+    stopTimer = setTimeout(() => stopRecording(), durationSec * 1000);
+  });
+
+  stopBtn.addEventListener('click', stopRecording);
+
+  // initial preview
+  drawBackground(bgEl.value);
+  drawTextAnimated({ fullText: (textEl.value||"").trim(), t: 0.2, anim: animEl.value, bg: bgEl.value });
+
+  // live preview when change options
+  function preview(){
+    drawBackground(bgEl.value);
+    drawTextAnimated({ fullText: (textEl.value||"").trim(), t: 0.25, anim: animEl.value, bg: bgEl.value });
+  }
+  bgEl.addEventListener('change', preview);
+  animEl.addEventListener('change', preview);
+  textEl.addEventListener('input', preview);
+})();
+</script>
+</body>
+</html>
