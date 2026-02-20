@@ -199,6 +199,9 @@ button:hover{
 
     <!-- ✅ NEW: second button (opens voice.html) -->  
     <button type="button" class="open-page-btn" onclick="openVoicePage()">text to voice</button>  
+
+    <!-- ✅ NEW: third button (opens video.html) -->  
+    <button type="button" class="open-page-btn" onclick="openVideoPage()">text to video</button>  
   </nav>  
 </header>  
   
@@ -241,6 +244,11 @@ function openNewPage(){
 /* ✅ New voice page open function */  
 function openVoicePage(){  
   window.open("voice.html", "_blank");  
+}  
+
+/* ✅ New video page open function */  
+function openVideoPage(){  
+  window.open("video.html", "_blank");  
 }  
   
 /* ✅ FIXED: form submit script */  
