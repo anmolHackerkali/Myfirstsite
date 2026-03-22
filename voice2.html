@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Text-to-Voice</title>
+<style>
+/* Animated colorful background */
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    max-width: 700px;
+    margin: auto;
+    background: linear-gradient(270deg, #ff6ec4, #7873f5, #42e695, #f9f871);
+    background-size: 800% 800%;
+    animation: gradientBG 15s ease infinite;
+    color: #fff;
+    border-radius: 10px;
+}
+
+@keyframes gradientBG {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
+}
+
+/* Box styling for main content */
+.container {
+    background-color: rgba(0,0,0,0.6);
+    padding: 20px;
+    border-radius: 12px;
+}
+
+/* Textarea & controls */
+textarea {
+    width: 100%;
+    font-size: 16px;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    resize: none;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+/* Sliders */
+input[type=range] {
+    width: 100%;
+    margin-top: 5px;
+}
+
+/* Buttons */
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #ff9800;
+    color: #000;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+button:hover {
+    background-color: #e68900;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+<h2>Text-to-Voice Generator</h2>
+
+<textarea id="text" rows="6" placeholder="Enter text here..."></textarea>
+
+<label for="rate">Rate (Speed): <span id="rateValue">1</span></label>
+<input type="range" id="rate" min="0.5" max="2" step="0.1" value="1">
+
+<label for="pitch">Pitch: <span id="pitchValue">1</span></label>
+<input type="range" id="pitch" min="0.5" max="2" step="0.1" value="1">
+
+<div style="margin-top:15px;">
+    <button onclick="playVoice()">Play Voice</button>
+    <button onclick="downloadVoice()">Download Voice</button>
+</div>
+</div>
+
+<script>
+const synth = window.speechSynthesis;
+const rateSlider = document.getElementById('rate');
+const pitchSlider = document.getElementById('pitch');
+const rateValue = document.getElementById('rateValue');
+const pitchValue = document.getElementById('pitchValue');
+
+rateSlider.oninput = () => { rateValue.textContent = rateSlider.value; };
+pitchSlider.oninput = () => { pitchValue.textContent = pitchSlider.value; };
+
+// Play voice once
+function playVoice(){
+    const text = document.getElementById('text').value.trim();
+    if(!text) return;
+
+    // Stop any currently speaking
+    if(synth.speaking) synth.cancel();
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = parseFloat(rateSlider.value);
+    utter.pitch = parseFloat(pitchSlider.value);
+    synth.speak(utter);
+}
+
+// Download voice as WAV using OfflineAudioContext
+async function downloadVoice(){
+    const text = document.getElementById('text').value.trim();
+    if(!text) return alert("Please enter text first!");
+
+    // Use SpeechSynthesis API to speak into a MediaStreamDestination (hacky workaround)
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = parseFloat(rateSlider.value);
+    utter.pitch = parseFloat(pitchSlider.value);
+
+    const audioCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100*2, 44100);
+    const dest = audioCtx.createMediaStreamDestination();
+    const mediaRecorder = new MediaRecorder(dest.stream);
+    let chunks = [];
+
+    mediaRecorder.ondataavailable = e => chunks.push(e.data);
+    mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, {type:'audio/wav'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = "voice.wav";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    };
+
+    mediaRecorder.start();
+    utter.onend = () => mediaRecorder.stop();
+    synth.speak(utter);
+}
+</script>
+
+</body>
+</html>
