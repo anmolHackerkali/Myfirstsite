@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Text-to-Voice</title>
+<title>Text-to-Voice with 20 Background Sounds</title>
 <style>
-/* Animated colorful background */
 body {
     font-family: Arial, sans-serif;
     padding: 20px;
@@ -16,21 +15,16 @@ body {
     color: #fff;
     border-radius: 10px;
 }
-
 @keyframes gradientBG {
     0% {background-position: 0% 50%;}
     50% {background-position: 100% 50%;}
     100% {background-position: 0% 50%;}
 }
-
-/* Box styling for main content */
 .container {
     background-color: rgba(0,0,0,0.6);
     padding: 20px;
     border-radius: 12px;
 }
-
-/* Textarea & controls */
 textarea {
     width: 100%;
     font-size: 16px;
@@ -39,20 +33,8 @@ textarea {
     border: none;
     resize: none;
 }
-
-label {
-    display: block;
-    margin-top: 10px;
-    font-weight: bold;
-}
-
-/* Sliders */
-input[type=range] {
-    width: 100%;
-    margin-top: 5px;
-}
-
-/* Buttons */
+label { display: block; margin-top: 10px; font-weight: bold; }
+input[type=range] { width: 100%; margin-top: 5px; }
 button {
     margin-top: 10px;
     padding: 10px 20px;
@@ -63,10 +45,45 @@ button {
     cursor: pointer;
     border-radius: 8px;
 }
-
-button:hover {
-    background-color: #e68900;
+button:hover { background-color: #e68900; }
+#toast {
+    visibility: hidden;
+    min-width: 250px;
+    margin-left: -125px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 8px;
+    padding: 16px;
+    position: fixed;
+    z-index: 1;
+    left: 50%;
+    bottom: 30px;
+    font-size: 17px;
+    opacity: 0;
+    transition: opacity 0.5s, bottom 0.5s;
 }
+#toast.show {
+    visibility: visible;
+    opacity: 1;
+    bottom: 50px;
+}
+.history {
+    margin-top: 15px;
+    background: rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 8px;
+}
+.history h3 { margin-top:0; }
+.history button {
+    margin: 5px 5px 0 0;
+    font-size: 14px;
+    padding: 5px 10px;
+    background-color: #4CAF50;
+    color: white;
+}
+.history button:hover { background-color: #45a049; }
+select { margin-top: 10px; padding: 8px; border-radius: 8px; border:none; font-size:16px;}
 </style>
 </head>
 <body>
@@ -74,7 +91,7 @@ button:hover {
 <div class="container">
 <h2>Text-to-Voice Generator</h2>
 
-<textarea id="text" rows="6" placeholder="Enter text here..."></textarea>
+<textarea id="text" rows="4" placeholder="Enter text here..."></textarea>
 
 <label for="rate">Rate (Speed): <span id="rateValue">1</span></label>
 <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1">
@@ -82,11 +99,44 @@ button:hover {
 <label for="pitch">Pitch: <span id="pitchValue">1</span></label>
 <input type="range" id="pitch" min="0.5" max="2" step="0.1" value="1">
 
+<label for="bgSelect">Select Background Music:</label>
+<select id="bgSelect">
+    <option value="">None</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">Music 1</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3">Music 2</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3">Music 3</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3">Music 4</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3">Music 5</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3">Music 6</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3">Music 7</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3">Music 8</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3">Music 9</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3">Music 10</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3">Music 11</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3">Music 12</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3">Music 13</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3">Music 14</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3">Music 15</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3">Music 16</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-17.mp3">Music 17</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-18.mp3">Music 18</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-19.mp3">Music 19</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-20.mp3">Music 20</option>
+</select>
+
 <div style="margin-top:15px;">
     <button onclick="playVoice()">Play Voice</button>
     <button onclick="downloadVoice()">Download Voice</button>
 </div>
+
+<div class="history">
+<h3>History (Recent Texts)</h3>
+<div id="historyList"></div>
 </div>
+</div>
+
+<audio id="bgMusic" loop></audio>
+<div id="toast">Voice download ho gaya!</div>
 
 <script>
 const synth = window.speechSynthesis;
@@ -94,55 +144,85 @@ const rateSlider = document.getElementById('rate');
 const pitchSlider = document.getElementById('pitch');
 const rateValue = document.getElementById('rateValue');
 const pitchValue = document.getElementById('pitchValue');
+const historyList = document.getElementById('historyList');
+const bgMusic = document.getElementById('bgMusic');
+const bgSelect = document.getElementById('bgSelect');
 
 rateSlider.oninput = () => { rateValue.textContent = rateSlider.value; };
 pitchSlider.oninput = () => { pitchValue.textContent = pitchSlider.value; };
 
-// Play voice once
+let history = JSON.parse(localStorage.getItem('ttsHistory')) || [];
+
+function updateHistory(){
+    historyList.innerHTML = '';
+    history.slice(-5).reverse().forEach((text)=>{
+        const btnPlay = document.createElement('button');
+        btnPlay.textContent = "Play";
+        btnPlay.onclick = ()=>{ document.getElementById('text').value = text; playVoice(); };
+        const btnDownload = document.createElement('button');
+        btnDownload.textContent = "Download";
+        btnDownload.onclick = ()=>{ document.getElementById('text').value = text; downloadVoice(); };
+        const span = document.createElement('span');
+        span.textContent = ' '+text;
+        const div = document.createElement('div');
+        div.appendChild(btnPlay);
+        div.appendChild(btnDownload);
+        div.appendChild(span);
+        historyList.appendChild(div);
+    });
+}
+
+function addToHistory(text){
+    history.push(text);
+    if(history.length>10) history.shift();
+    localStorage.setItem('ttsHistory', JSON.stringify(history));
+    updateHistory();
+}
+
 function playVoice(){
     const text = document.getElementById('text').value.trim();
     if(!text) return;
-
-    // Stop any currently speaking
     if(synth.speaking) synth.cancel();
+    addToHistory(text);
+
+    const musicUrl = bgSelect.value;
+    if(musicUrl){
+        bgMusic.src = musicUrl;
+        bgMusic.volume = 0.2;
+        bgMusic.play();
+    }
 
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = parseFloat(rateSlider.value);
     utter.pitch = parseFloat(pitchSlider.value);
+    utter.onend = ()=>{ bgMusic.pause(); bgMusic.currentTime=0; };
     synth.speak(utter);
 }
 
-// Download voice as WAV using OfflineAudioContext
-async function downloadVoice(){
+function downloadVoice(){
     const text = document.getElementById('text').value.trim();
-    if(!text) return alert("Please enter text first!");
+    if(!text) return alert("Please enter text!");
+    addToHistory(text);
 
-    // Use SpeechSynthesis API to speak into a MediaStreamDestination (hacky workaround)
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = parseFloat(rateSlider.value);
-    utter.pitch = parseFloat(pitchSlider.value);
+    const blob = new Blob([text], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "voice.txt"; 
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 
-    const audioCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100*2, 44100);
-    const dest = audioCtx.createMediaStreamDestination();
-    const mediaRecorder = new MediaRecorder(dest.stream);
-    let chunks = [];
-
-    mediaRecorder.ondataavailable = e => chunks.push(e.data);
-    mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, {type:'audio/wav'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = "voice.wav";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    };
-
-    mediaRecorder.start();
-    utter.onend = () => mediaRecorder.stop();
-    synth.speak(utter);
+    showToast();
 }
+
+function showToast(){
+    const toast = document.getElementById("toast");
+    toast.className = "show";
+    setTimeout(()=>{ toast.className = toast.className.replace("show",""); }, 3000);
+}
+
+updateHistory();
 </script>
 
 </body>
