@@ -1,57 +1,47 @@
-# api/tts.py
-from flask import Flask, request, send_file
-from gtts import gTTS
+from fastapi import FastAPI
+from fastapi.responses import StreamingResponse
 from pydub import AudioSegment
+from gtts import gTTS
 import io
-import requests
 
-app = Flask(__name__)
+app = FastAPI()
 
-@app.route("/api/tts")
-def tts():
-    text = request.args.get("text", "")
-    rate = float(request.args.get("rate", 1.0))
-    pitch = float(request.args.get("pitch", 1.0))
-    bg_url = request.args.get("bg", "")
+@app.get("/api/tts")
+def tts(text: str, rate: float = 1.0, pitch: float = 1.0, bg_url: str = ""):
+    # 1️⃣ Generate voice using gTTS
+    tts = gTTS(text)
+    tts_fp = io.BytesIO()
+    tts.write_to_fp(tts_fp)
+    tts_fp.seek(0)
 
-    if not text:
-        return "No text provided", 400
+    voice = AudioSegment.from_file(tts_fp, format="mp3")
 
-    # 1️⃣ Generate voice from text
-    tts = gTTS(text=text, lang="en")
-    tts_bytes = io.BytesIO()
-    tts.write_to_fp(tts_bytes)
-    tts_bytes.seek(0)
-    voice = AudioSegment.from_file(tts_bytes, format="mp3")
+    # 2️⃣ Apply rate (speed)
+    voice = voice._spawn(voice.raw_data, overrides={
+        "frame_rate": int(voice.frame_rate * rate)
+    }).set_frame_rate(voice.frame_rate)
 
-    # 2️⃣ Adjust rate
-    new_frame_rate = int(voice.frame_rate * rate)
-    voice = voice._spawn(voice.raw_data, overrides={'frame_rate': new_frame_rate})
-    voice = voice.set_frame_rate(44100)
+    # 3️⃣ Apply pitch by changing speed slightly
+    voice = voice._spawn(voice.raw_data, overrides={
+        "frame_rate": int(voice.frame_rate * pitch)
+    }).set_frame_rate(voice.frame_rate)
 
-    # 3️⃣ Adjust pitch
-    octaves = pitch - 1.0
-    new_sample_rate = int(voice.frame_rate * (2.0 ** octaves))
-    voice = voice._spawn(voice.raw_data, overrides={'frame_rate': new_sample_rate})
-    voice = voice.set_frame_rate(44100)
-
-    # 4️⃣ Add background music if provided
+    # 4️⃣ Overlay background music if provided
     if bg_url:
-        try:
-            r = requests.get(bg_url)
-            bg_audio = AudioSegment.from_file(io.BytesIO(r.content), format="mp3")
-            bg_audio = bg_audio - 15  # reduce volume
-            bg_audio = bg_audio[:len(voice)]
-            combined = voice.overlay(bg_audio)
-        except:
-            combined = voice
+        import requests
+        r = requests.get(bg_url)
+        bg_music = AudioSegment.from_file(io.BytesIO(r.content), format="mp3")
+        bg_music = bg_music - 20  # reduce volume
+        # Loop bg_music to match voice length
+        while len(bg_music) < len(voice):
+            bg_music += bg_music
+        bg_music = bg_music[:len(voice)]
+        combined = voice.overlay(bg_music)
     else:
         combined = voice
 
-    out_bytes = io.BytesIO()
-    combined.export(out_bytes, format="mp3")
-    out_bytes.seek(0)
-    return send_file(out_bytes, mimetype="audio/mpeg", download_name="voice.mp3")
-
-if __name__ == "__main__":
-    app.run(debug=True)
+    # 5️⃣ Return as MP3 streaming response
+    out_fp = io.BytesIO()
+    combined.export(out_fp, format="mp3")
+    out_fp.seek(0)
+    return StreamingResponse(out_fp, media_type="audio/mpeg", headers={"Content-Disposition": "attachment; filename=voice.mp3"})
