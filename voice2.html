@@ -187,15 +187,24 @@ function downloadVoice(){
     if(!text) return alert("Please enter text!");
     addToHistory(text);
 
-    // 😁 Yaha apna backend endpoint daalo (Vercel serverless function)
-    const url = `/api/tts?text=${encodeURIComponent(text)}`;
+    // Step 1: Backend API call
+    fetch(`/api/tts?text=${encodeURIComponent(text)}`)
+        .then(response => response.blob()) // Step 2: Convert response to Blob
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob); // Step 3: Create download URL
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "voice.mp3"; // Step 4: Download filename
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
 
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = "voice.mp3";
-    a.click();
-
-    showToast();
+            showToast();
+        })
+        .catch(err => {
+            alert("Download failed! Server error.");
+            console.error(err);
+        });
 }
 
 function showToast(){
