@@ -4,28 +4,93 @@
 <meta charset="UTF-8">
 <title>Text-to-Voice with Background Music</title>
 <style>
-/* Tumhara previous CSS copy kar lo (background gradient, container, buttons etc.) */
-body { font-family: Arial; padding:20px; max-width:700px; margin:auto; background:linear-gradient(270deg,#ff6ec4,#7873f5,#42e695,#f9f871); background-size:800% 800%; animation: gradientBG 15s ease infinite; color:#fff; border-radius:10px;}
-@keyframes gradientBG {0%{background-position:0% 50%;}50%{background-position:100% 50%;}100%{background-position:0% 50%;}}
-.container {background-color: rgba(0,0,0,0.6); padding:20px; border-radius:12px;}
-textarea {width:100%; font-size:16px; padding:10px; border-radius:8px; border:none; resize:none;}
-label {display:block; margin-top:10px; font-weight:bold;}
-input[type=range]{width:100%; margin-top:5px;}
-button{margin-top:10px; padding:10px 20px; font-size:16px; background-color:#ff9800; color:#000; border:none; cursor:pointer; border-radius:8px;}
-button:hover{background-color:#e68900;}
-#toast{visibility:hidden; min-width:250px; margin-left:-125px; background-color:#333; color:#fff; text-align:center; border-radius:8px; padding:16px; position:fixed; z-index:1; left:50%; bottom:30px; font-size:17px; opacity:0; transition:opacity 0.5s, bottom 0.5s;}
-#toast.show{visibility:visible; opacity:1; bottom:50px;}
-.history{margin-top:15px; background:rgba(255,255,255,0.1); padding:10px; border-radius:8px;}
-.history h3{margin-top:0;}
-.history button{margin:5px 5px 0 0; font-size:14px; padding:5px 10px; background-color:#4CAF50; color:white;}
-.history button:hover{background-color:#45a049;}
-select{margin-top:10px; padding:8px; border-radius:8px; border:none; font-size:16px;}
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    max-width: 700px;
+    margin: auto;
+    background: linear-gradient(270deg, #ff6ec4, #7873f5, #42e695, #f9f871);
+    background-size: 800% 800%;
+    animation: gradientBG 15s ease infinite;
+    color: #fff;
+    border-radius: 10px;
+}
+@keyframes gradientBG {
+    0% {background-position: 0% 50%;}
+    50% {background-position: 100% 50%;}
+    100% {background-position: 0% 50%;}
+}
+.container {
+    background-color: rgba(0,0,0,0.6);
+    padding: 20px;
+    border-radius: 12px;
+}
+textarea {
+    width: 100%;
+    font-size: 16px;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    resize: none;
+}
+label { display: block; margin-top: 10px; font-weight: bold; }
+input[type=range] { width: 100%; margin-top: 5px; }
+button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #ff9800;
+    color: #000;
+    border: none;
+    cursor: pointer;
+    border-radius: 8px;
+}
+button:hover { background-color: #e68900; }
+#toast {
+    visibility: hidden;
+    min-width: 250px;
+    margin-left: -125px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 8px;
+    padding: 16px;
+    position: fixed;
+    z-index: 1;
+    left: 50%;
+    bottom: 30px;
+    font-size: 17px;
+    opacity: 0;
+    transition: opacity 0.5s, bottom 0.5s;
+}
+#toast.show {
+    visibility: visible;
+    opacity: 1;
+    bottom: 50px;
+}
+.history {
+    margin-top: 15px;
+    background: rgba(255,255,255,0.1);
+    padding: 10px;
+    border-radius: 8px;
+}
+.history h3 { margin-top:0; }
+.history button {
+    margin: 5px 5px 0 0;
+    font-size: 14px;
+    padding: 5px 10px;
+    background-color: #4CAF50;
+    color: white;
+}
+.history button:hover { background-color: #45a049; }
+select { margin-top: 10px; padding: 8px; border-radius: 8px; border:none; font-size:16px;}
 </style>
 </head>
 <body>
 
 <div class="container">
 <h2>Text-to-Voice Generator</h2>
+
 <textarea id="text" rows="4" placeholder="Enter text here..."></textarea>
 
 <label for="rate">Rate (Speed): <span id="rateValue">1</span></label>
@@ -36,15 +101,15 @@ select{margin-top:10px; padding:8px; border-radius:8px; border:none; font-size:1
 
 <label for="bgSelect">Select Background Music:</label>
 <select id="bgSelect">
-<option value="">None</option>
-<option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">Music 1</option>
-<option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3">Music 2</option>
-<option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3">Music 3</option>
+    <option value="">None</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">Music 1</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3">Music 2</option>
+    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3">Music 3</option>
 </select>
 
 <div style="margin-top:15px;">
-<button onclick="playVoice()">Play Voice</button>
-<button onclick="downloadVoice()">Download Voice</button>
+    <button onclick="playVoice()">Play Voice</button>
+    <button onclick="downloadVoice()">Download Voice</button>
 </div>
 
 <div class="history">
@@ -69,40 +134,80 @@ rateSlider.oninput = () => { rateValue.textContent = rateSlider.value; };
 pitchSlider.oninput = () => { pitchValue.textContent = pitchSlider.value; };
 
 let history = JSON.parse(localStorage.getItem('ttsHistory')) || [];
-function updateHistory(){ historyList.innerHTML=''; history.slice(-5).reverse().forEach(text=>{ const btnPlay=document.createElement('button'); btnPlay.textContent="Play"; btnPlay.onclick=()=>{document.getElementById('text').value=text; playVoice();}; const btnDownload=document.createElement('button'); btnDownload.textContent="Download"; btnDownload.onclick=()=>{document.getElementById('text').value=text; downloadVoice();}; const span=document.createElement('span'); span.textContent=' '+text; const div=document.createElement('div'); div.appendChild(btnPlay); div.appendChild(btnDownload); div.appendChild(span); historyList.appendChild(div);});}
-function addToHistory(text){ history.push(text); if(history.length>10) history.shift(); localStorage.setItem('ttsHistory', JSON.stringify(history)); updateHistory();}
 
-// Play
+function updateHistory(){
+    historyList.innerHTML = '';
+    history.slice(-5).reverse().forEach((text)=>{
+        const btnPlay = document.createElement('button');
+        btnPlay.textContent = "Play";
+        btnPlay.onclick = ()=>{ document.getElementById('text').value = text; playVoice(); };
+        const btnDownload = document.createElement('button');
+        btnDownload.textContent = "Download";
+        btnDownload.onclick = ()=>{ document.getElementById('text').value = text; downloadVoice(); };
+        const span = document.createElement('span');
+        span.textContent = ' '+text;
+        const div = document.createElement('div');
+        div.appendChild(btnPlay);
+        div.appendChild(btnDownload);
+        div.appendChild(span);
+        historyList.appendChild(div);
+    });
+}
+
+function addToHistory(text){
+    history.push(text);
+    if(history.length>10) history.shift();
+    localStorage.setItem('ttsHistory', JSON.stringify(history));
+    updateHistory();
+}
+
+// Play voice using SpeechSynthesis API
 function playVoice(){
     const text = document.getElementById('text').value.trim();
     if(!text) return;
     addToHistory(text);
+
     const musicUrl = bgSelect.value;
-    if(musicUrl){ bgMusic.src=musicUrl; bgMusic.volume=0.2; bgMusic.play();}
-    const utter=new SpeechSynthesisUtterance(text);
-    utter.rate=parseFloat(rateSlider.value);
-    utter.pitch=parseFloat(pitchSlider.value);
-    utter.onend=()=>{ bgMusic.pause(); bgMusic.currentTime=0;};
+    if(musicUrl){
+        bgMusic.src = musicUrl;
+        bgMusic.volume = 0.2;
+        bgMusic.play();
+    }
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = parseFloat(rateSlider.value);
+    utter.pitch = parseFloat(pitchSlider.value);
+    utter.onend = ()=>{ bgMusic.pause(); bgMusic.currentTime=0; };
     window.speechSynthesis.speak(utter);
 }
 
-// Download (calls Python backend)
+// Download voice from Python serverless backend
 function downloadVoice(){
-    const text=document.getElementById('text').value.trim();
+    const text = document.getElementById('text').value.trim();
+    const rate = document.getElementById('rate').value;
+    const pitch = document.getElementById('pitch').value;
+    const bg = document.getElementById('bgSelect').value;
+
     if(!text) return alert("Please enter text!");
-    addToHistory(text);
-    const rate=parseFloat(rateSlider.value);
-    const pitch=parseFloat(pitchSlider.value);
-    const bg=encodeURIComponent(bgSelect.value);
-    const url=`/api/tts?text=${encodeURIComponent(text)}&rate=${rate}&pitch=${pitch}&bg=${bg}`;
-    const a=document.createElement('a');
-    a.href=url;
-    a.download="voice.mp3";
+
+    // Yaha Python backend endpoint URL
+    const url = `/api/tts?text=${encodeURIComponent(text)}&rate=${rate}&pitch=${pitch}&bg_url=${encodeURIComponent(bg)}`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "voice.mp3";
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
+
     showToast();
 }
 
-function showToast(){ const toast=document.getElementById("toast"); toast.className="show"; setTimeout(()=>{toast.className=toast.className.replace("show","");},3000); }
+function showToast(){
+    const toast = document.getElementById("toast");
+    toast.className = "show";
+    setTimeout(()=>{ toast.className = toast.className.replace("show",""); }, 3000);
+}
 
 updateHistory();
 </script>
