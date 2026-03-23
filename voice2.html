@@ -127,6 +127,7 @@ const pitchSlider = document.getElementById('pitch');
 const rateValue = document.getElementById('rateValue');
 const pitchValue = document.getElementById('pitchValue');
 const historyList = document.getElementById('historyList');
+const bgMusic = document.getElementById('bgMusic');
 const bgSelect = document.getElementById('bgSelect');
 
 rateSlider.oninput = () => { rateValue.textContent = rateSlider.value; };
@@ -160,26 +161,33 @@ function addToHistory(text){
     updateHistory();
 }
 
-// Play voice in browser
+// Play voice using serverless Python backend
 function playVoice(){
     const text = document.getElementById('text').value.trim();
     if(!text) return;
     addToHistory(text);
 
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = parseFloat(rateSlider.value);
-    utter.pitch = parseFloat(pitchSlider.value);
-    window.speechSynthesis.speak(utter);
+    const musicUrl = bgSelect.value;
+    const rate = parseFloat(rateSlider.value);
+    const pitch = parseFloat(pitchSlider.value);
+
+    fetch(`/api/tts?text=${encodeURIComponent(text)}&rate=${rate}&pitch=${pitch}&bg_url=${encodeURIComponent(musicUrl)}`)
+        .then(res => res.blob())
+        .then(blob => {
+            const audioUrl = URL.createObjectURL(blob);
+            const audio = new Audio(audioUrl);
+            audio.play();
+        });
 }
 
-// Download voice from Python backend
+// Download voice from serverless Python backend
 function downloadVoice(){
     const text = document.getElementById('text').value.trim();
-    if(!text) return alert("Enter text!");
+    if(!text) return alert("Please enter text!");
     addToHistory(text);
 
-    const rate = rateSlider.value;
-    const pitch = pitchSlider.value;
+    const rate = parseFloat(rateSlider.value);
+    const pitch = parseFloat(pitchSlider.value);
     const bg = encodeURIComponent(bgSelect.value);
 
     const url = `/api/tts?text=${encodeURIComponent(text)}&rate=${rate}&pitch=${pitch}&bg_url=${bg}`;
