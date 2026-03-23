@@ -187,18 +187,22 @@ function downloadVoice(){
     if(!text) return alert("Please enter text!");
     addToHistory(text);
 
-    // Step 1: Backend API call
-    fetch(`/api/tts?text=${encodeURIComponent(text)}`)
-        .then(response => response.blob()) // Step 2: Convert response to Blob
+    const rate = parseFloat(rateSlider.value);
+    const pitch = parseFloat(pitchSlider.value);
+    const bgUrl = encodeURIComponent(bgSelect.value);
+
+    const url = `/api/tts?text=${encodeURIComponent(text)}&rate=${rate}&pitch=${pitch}&bg=${bgUrl}`;
+
+    fetch(url)
+        .then(response => response.blob())
         .then(blob => {
-            const url = window.URL.createObjectURL(blob); // Step 3: Create download URL
+            const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = "voice.mp3"; // Step 4: Download filename
+            a.href = downloadUrl;
+            a.download = "voice.mp3";
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
-
             showToast();
         })
         .catch(err => {
