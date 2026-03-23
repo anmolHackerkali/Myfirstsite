@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Text-to-Voice with 20 Background Sounds</title>
+<title>Text-to-Voice with Background Music</title>
 <style>
 body {
     font-family: Arial, sans-serif;
@@ -105,23 +105,6 @@ select { margin-top: 10px; padding: 8px; border-radius: 8px; border:none; font-s
     <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">Music 1</option>
     <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3">Music 2</option>
     <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3">Music 3</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3">Music 4</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3">Music 5</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3">Music 6</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3">Music 7</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3">Music 8</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3">Music 9</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3">Music 10</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3">Music 11</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3">Music 12</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-13.mp3">Music 13</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-14.mp3">Music 14</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3">Music 15</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3">Music 16</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-17.mp3">Music 17</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-18.mp3">Music 18</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-19.mp3">Music 19</option>
-    <option value="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-20.mp3">Music 20</option>
 </select>
 
 <div style="margin-top:15px;">
@@ -198,14 +181,14 @@ function playVoice(){
     window.speechSynthesis.speak(utter);
 }
 
-// Download voice as MP3 using VoiceRSS API
+// ✅ Download voice from Python backend (serverless)
 function downloadVoice(){
     const text = document.getElementById('text').value.trim();
     if(!text) return alert("Please enter text!");
     addToHistory(text);
 
-    const apiKey = "78537beed6564f6f9fe32b0667287587"; // 😁 yaha apni free API key daalo
-    const url = `https://api.voicerss.org/?key=${apiKey}&hl=en-us&src=${encodeURIComponent(text)}`;
+    // 😁 Yaha apna backend endpoint daalo (Vercel serverless function)
+    const url = `/api/tts?text=${encodeURIComponent(text)}`;
 
     const a = document.createElement('a');
     a.href = url;
