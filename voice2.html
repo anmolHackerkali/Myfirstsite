@@ -127,7 +127,6 @@ const pitchSlider = document.getElementById('pitch');
 const rateValue = document.getElementById('rateValue');
 const pitchValue = document.getElementById('pitchValue');
 const historyList = document.getElementById('historyList');
-const bgMusic = document.getElementById('bgMusic');
 const bgSelect = document.getElementById('bgSelect');
 
 rateSlider.oninput = () => { rateValue.textContent = rateSlider.value; };
@@ -161,54 +160,36 @@ function addToHistory(text){
     updateHistory();
 }
 
-// Play voice using SpeechSynthesis API
+// Play voice in browser
 function playVoice(){
     const text = document.getElementById('text').value.trim();
     if(!text) return;
     addToHistory(text);
 
-    const musicUrl = bgSelect.value;
-    if(musicUrl){
-        bgMusic.src = musicUrl;
-        bgMusic.volume = 0.2;
-        bgMusic.play();
-    }
-
     const utter = new SpeechSynthesisUtterance(text);
     utter.rate = parseFloat(rateSlider.value);
     utter.pitch = parseFloat(pitchSlider.value);
-    utter.onend = ()=>{ bgMusic.pause(); bgMusic.currentTime=0; };
     window.speechSynthesis.speak(utter);
 }
 
-// ✅ Download voice from Python backend (serverless)
+// Download voice from Python backend
 function downloadVoice(){
     const text = document.getElementById('text').value.trim();
-    if(!text) return alert("Please enter text!");
+    if(!text) return alert("Enter text!");
     addToHistory(text);
 
-    const rate = parseFloat(rateSlider.value);
-    const pitch = parseFloat(pitchSlider.value);
-    const bgUrl = encodeURIComponent(bgSelect.value);
+    const rate = rateSlider.value;
+    const pitch = pitchSlider.value;
+    const bg = encodeURIComponent(bgSelect.value);
 
-    const url = `/api/tts?text=${encodeURIComponent(text)}&rate=${rate}&pitch=${pitch}&bg=${bgUrl}`;
+    const url = `/api/tts?text=${encodeURIComponent(text)}&rate=${rate}&pitch=${pitch}&bg_url=${bg}`;
 
-    fetch(url)
-        .then(response => response.blob())
-        .then(blob => {
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = "voice.mp3";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            showToast();
-        })
-        .catch(err => {
-            alert("Download failed! Server error.");
-            console.error(err);
-        });
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "voice.mp3";
+    a.click();
+
+    showToast();
 }
 
 function showToast(){
