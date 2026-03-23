@@ -66,7 +66,7 @@ function downloadVoice(){
     const pitch = parseFloat(pitchSlider.value);
     const bg = bgSelect.value;
 
-    const url = `/api/tts?text=${encodeURIComponent(text)}&rate=${rate}&pitch=${pitch}&bg=${encodeURIComponent(bg)}`;
+    const url = `/api/tts?text=$.           {encodeURIComponent(text)}&rate=${rate}&pitch=$. {pitch}&bg=${encodeURIComponent(bg)}`;
 
     const a = document.createElement('a');
     a.href = url;
