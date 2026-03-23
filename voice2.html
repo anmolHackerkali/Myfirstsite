@@ -85,11 +85,6 @@ button:hover { background-color: #e68900; }
 .history button:hover { background-color: #45a049; }
 select { margin-top: 10px; padding: 8px; border-radius: 8px; border:none; font-size:16px;}
 </style>
-
-<!-- ResponsiveVoice API add karna hai yaha -->
-<script
-src="https://code.responsivevoice.org/responsivevoice.js?key=G8rP3lOO"></script>
-
 </head>
 <body>
 
@@ -183,7 +178,7 @@ function addToHistory(text){
     updateHistory();
 }
 
-// Play voice with ResponsiveVoice
+// Play voice using SpeechSynthesis API
 function playVoice(){
     const text = document.getElementById('text').value.trim();
     if(!text) return;
@@ -196,23 +191,21 @@ function playVoice(){
         bgMusic.play();
     }
 
-    responsiveVoice.speak(text, "UK English Male", {
-        rate: parseFloat(rateSlider.value),
-        pitch: parseFloat(pitchSlider.value),
-        onend: function(){
-            bgMusic.pause();
-            bgMusic.currentTime = 0;
-        }
-    });
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = parseFloat(rateSlider.value);
+    utter.pitch = parseFloat(pitchSlider.value);
+    utter.onend = ()=>{ bgMusic.pause(); bgMusic.currentTime=0; };
+    window.speechSynthesis.speak(utter);
 }
 
-// Download voice as MP3
+// Download voice as MP3 using VoiceRSS API
 function downloadVoice(){
     const text = document.getElementById('text').value.trim();
     if(!text) return alert("Please enter text!");
     addToHistory(text);
 
-    const url = `https://code.responsivevoice.org/getvoice.php?t=${encodeURIComponent(text)}&tl=en-us&sv=m1`;
+    const apiKey = "d9c24a3a891440708a0518641412f3bf"; // 😁 yaha apni free API key daalo
+    const url = `https://api.voicerss.org/?key=${apiKey}&hl=en-us&src=${encodeURIComponent(text)}`;
 
     const a = document.createElement('a');
     a.href = url;
